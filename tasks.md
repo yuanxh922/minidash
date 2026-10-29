@@ -66,12 +66,16 @@ Establish the relational schema and Pydantic validation structures required for 
 - `app/database.py`:
   - Add `order_status_history` DDL with foreign key referencing `orders(id)` and `ON DELETE CASCADE`.
   - Add index `idx_order_status_history_order_id` on `order_status_history(order_id)`.
+  - Update base `CREATE_TABLES_SQL` constant to include `estimated_arrival_at TEXT` on `orders`.
   - Add idempotent column migration in `init_db()`: check `PRAGMA table_info(orders);` and run `ALTER TABLE orders ADD COLUMN estimated_arrival_at TEXT;` if absent.
 - `app/schemas/order.py`:
   - Define `OrderStatus(str, Enum)` with members: `PLACED`, `PREPARING`, `READY`, `PICKED_UP`, `DELIVERED`, `CANCELLED`.
   - Define `TrackingHistoryItem(BaseModel)` with `status: OrderStatus` and `timestamp: str`.
   - Define `OrderTrackingResponse(BaseModel)` with `order_id: int`, `current_status: OrderStatus`, `estimated_arrival_at: Optional[str]`, and `history: List[TrackingHistoryItem]`.
   - Extend `OrderResponse` to include `estimated_arrival_at: Optional[str] = None` and type `status: OrderStatus`.
+  - Keep `OrderStatusUpdate.status: str` so that unrecognized status values reach `OrderService` for domain validation and return HTTP 400 (AC-2.9) rather than Pydantic's default HTTP 422.
+- `tests/conftest.py`:
+  - Add `db_conn` test fixture yielding an isolated SQLite connection for direct database assertions.
 
 #### 4. Test That Will Verify It
 - **Test File**: `tests/test_schema.py`
@@ -151,6 +155,10 @@ Implement the pure business logic service for deterministic ETA calculation base
     - $\text{ETA}_{\text{DELIVERED}} = t$
     - $\text{ETA}_{\text{CANCELLED}} = \text{None}$
   - Formats output via `.isoformat()` with explicit UTC offset (`+00:00` or `Z`).
+- `app/services/order_service.py`:
+  - Integrate `calculate_eta` into `create_order` so that newly created `PLACED` orders immediately calculate and persist initial `estimated_arrival_at` (AC-3.1 & AC-3.5).
+- `app/repository/order_repo.py`:
+  - Extend `create_order(...)` to accept and persist `estimated_arrival_at`.
 
 #### 4. Test That Will Verify It
 - **Test File**: `tests/test_eta.py`
@@ -206,6 +214,8 @@ Enforce strict lifecycle transitions when clients update an order via `PATCH /or
   - Coordinate with `RestaurantRepository` to obtain `avg_prep_minutes` and invoke `calculate_eta`.
 - `app/routes/order_routes.py`:
   - Keep route handler pointing to updated `OrderService.update_order_status`.
+- `tests/test_orders.py`:
+  - Update legacy test `test_update_order_status_success` to advance through valid FSM states (`PREPARING` $\rightarrow$ `READY` $\rightarrow$ `PICKED_UP`), removing obsolete `'OUT_FOR_DELIVERY'` placeholder to preserve green baseline runs.
 
 #### 4. Test That Will Verify It
 - **Test File**: `tests/test_fsm.py`
@@ -298,7 +308,7 @@ Introduce real-time push streaming via Server-Sent Events (`GET /orders/{id}/tra
     - `listeners: dict[int, set[asyncio.Queue]]`
     - `register_listener(order_id: int) -> asyncio.Queue`
     - `unregister_listener(order_id: int, queue: asyncio.Queue) -> None`
-    - `broadcast(order_id: int, payload: dict) -> None`
+    - `broadcast(order_id: int, payload: dict) -> None`: uses `loop.call_soon_threadsafe(queue.put_nowait, payload)` to ensure thread safety when triggered from AnyIO worker threads.
 - `app/services/order_service.py`:
   - Inject or access `OrderBroadcaster` singleton.
   - In `update_order_status`, call `broadcaster.broadcast(order_id, tracking_payload)`.
@@ -313,6 +323,8 @@ Introduce real-time push streaming via Server-Sent Events (`GET /orders/{id}/tra
 
       ```
     - Unregisters queue in `finally` block when client disconnects.
+- `tests/conftest.py`:
+  - Add `async_client` fixture for streaming SSE responses and handling asynchronous requests without event loop collisions.
 
 #### 4. Test That Will Verify It
 - **Test File**: `tests/test_sse.py`
@@ -325,11 +337,11 @@ Introduce real-time push streaming via Server-Sent Events (`GET /orders/{id}/tra
      - Connects to `/orders/{id}/tracking/stream`.
      - Asserts response header `content-type` starts with `text/event-stream`.
      - Reads first frame; asserts event name is `tracking_update` and payload contains `current_status: "PLACED"`.
-  2. `test_sse_reactive_push_on_status_change(async_client, client)`:
-     - Subscribes to stream in background task.
-     - Synchronous client calls `PATCH /orders/{id}/status` to `"PREPARING"`.
+  2. `test_sse_reactive_push_on_status_change(async_client)`:
+     - Subscribes to stream in background async task.
+     - Performs async `await async_client.patch(...)` to update status to `"PREPARING"`, avoiding `asyncio.run()` re-entrancy issues.
      - Verifies subscriber receives second event frame with `current_status: "PREPARING"`.
-  3. `test_sse_stream_closes_on_terminal_state(async_client, client)`:
+  3. `test_sse_stream_closes_on_terminal_state(async_client)`:
      - Subscribes to order.
      - Advances order through to `"DELIVERED"`.
      - Verifies final `DELIVERED` frame is emitted and stream reader receives EOF / terminates.
@@ -354,6 +366,7 @@ Build a standalone developer and QA CLI script (`scripts/simulate_driver.py`) th
 - `scripts/simulate_driver.py` (New executable script):
   - Uses `argparse` for `--order-id`, `--delay`, and `--base-url`.
   - Uses Python `urllib.request` or `http.client` (zero third-party dependencies required).
+  - Encapsulates HTTP dispatch helper `_http_request(method, url, body=None)` to allow clean test monkeypatching without live daemon.
   - Fetches `GET /orders/{order_id}/tracking` to inspect current status.
   - Exits with return code 1 if order is already terminal (`DELIVERED` or `CANCELLED`) or missing.
   - Determines remaining state sequence and issues sequential `PATCH /orders/{order_id}/status` calls with `time.sleep(delay)`.
@@ -366,12 +379,13 @@ Build a standalone developer and QA CLI script (`scripts/simulate_driver.py`) th
   .venv/bin/pytest tests/test_simulator.py -v
   ```
 - **Test Cases**:
-  1. `test_simulator_advances_placed_order_to_delivered(monkeypatch)`:
+  1. `test_simulator_advances_placed_order_to_delivered(monkeypatch, client)`:
      - Places order in `PLACED` state.
+     - Monkeypatches `_http_request` to route directly through ASGI test client.
      - Invokes `simulate_driver.run_simulation(order_id=id, delay=0.01, base_url=...)`.
      - Asserts function returns exit code 0.
      - Queries tracking endpoint and verifies final status is `DELIVERED` with all 5 history records present.
-  2. `test_simulator_partial_advancement_from_ready(monkeypatch)`:
+  2. `test_simulator_partial_advancement_from_ready(monkeypatch, client)`:
      - Sets order to `READY`.
      - Runs simulation with `order_id=id`.
      - Asserts only 2 remaining steps (`PICKED_UP`, `DELIVERED`) are dispatched.
