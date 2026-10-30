@@ -123,3 +123,38 @@ class OrderRepository:
             self.record_status_history(order_id, status, timestamp)
 
         return self.get_by_id(order_id)
+
+    def get_tracking(self, order_id: int) -> Optional[dict]:
+        """Fetch tracking snapshot for an order including current status, ETA, and history."""
+        cursor = self.conn.execute(
+            """
+            SELECT status, estimated_arrival_at
+            FROM orders
+            WHERE id = ?
+            """,
+            (order_id,),
+        )
+        order_row = cursor.fetchone()
+        if not order_row:
+            return None
+
+        history_cursor = self.conn.execute(
+            """
+            SELECT status, timestamp
+            FROM order_status_history
+            WHERE order_id = ?
+            ORDER BY id ASC
+            """,
+            (order_id,),
+        )
+        history = [
+            {"status": row["status"], "timestamp": row["timestamp"]}
+            for row in history_cursor.fetchall()
+        ]
+
+        return {
+            "order_id": order_id,
+            "current_status": order_row["status"],
+            "estimated_arrival_at": order_row["estimated_arrival_at"],
+            "history": history,
+        }

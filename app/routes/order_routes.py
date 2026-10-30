@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from app.database import get_db
 from app.repository.order_repo import OrderRepository
 from app.repository.restaurant_repo import RestaurantRepository
-from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
+from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate, OrderTrackingResponse
 from app.services.order_service import OrderService
 
 router = APIRouter()
@@ -32,6 +32,15 @@ def get_order(
 ):
     """Retrieve an order by its ID."""
     return service.get_order(id)
+
+
+@router.get("/{id}/tracking", response_model=OrderTrackingResponse)
+def get_order_tracking(
+    id: int,
+    service: OrderService = Depends(get_order_service),
+):
+    """Retrieve live order tracking snapshot and history."""
+    return service.get_order_tracking(id)
 
 
 @router.patch("/{id}/status", response_model=OrderResponse)
