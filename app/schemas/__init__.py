@@ -1,5 +1,14 @@
 from app.schemas.restaurant import RestaurantResponse, MenuItemResponse
-from app.schemas.order import OrderCreate, OrderItemCreate, OrderStatusUpdate, OrderResponse, OrderItemResponse
+from app.schemas.order import (
+    OrderCreate,
+    OrderItemCreate,
+    OrderStatusUpdate,
+    OrderResponse,
+    OrderItemResponse,
+    OrderStatus,
+    TrackingHistoryItem,
+    OrderTrackingResponse,
+)
 
 __all__ = [
     "RestaurantResponse",
@@ -9,4 +18,7 @@ __all__ = [
     "OrderStatusUpdate",
     "OrderResponse",
     "OrderItemResponse",
+    "OrderStatus",
+    "TrackingHistoryItem",
+    "OrderTrackingResponse",
 ]

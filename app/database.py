@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS orders (
     total_cents INTEGER NOT NULL,
     address TEXT NOT NULL,
     created_at TEXT NOT NULL,
+    estimated_arrival_at TEXT,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
 );
 
@@ -39,6 +40,16 @@ CREATE TABLE IF NOT EXISTS order_items (
     FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items (id)
 );
+
+CREATE TABLE IF NOT EXISTS order_status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_status_history_order_id ON order_status_history (order_id);
 """
 
 INITIAL_RESTAURANTS_SEED = [
@@ -125,6 +136,11 @@ def init_db(db_path: Optional[str] = None) -> None:
     try:
         with conn:
             conn.executescript(CREATE_TABLES_SQL)
+            # Idempotent column migration: ensure estimated_arrival_at exists on orders
+            cursor = conn.execute("PRAGMA table_info(orders);")
+            columns = [row["name"] for row in cursor.fetchall()]
+            if "estimated_arrival_at" not in columns:
+                conn.execute("ALTER TABLE orders ADD COLUMN estimated_arrival_at TEXT;")
     finally:
         conn.close()
 
