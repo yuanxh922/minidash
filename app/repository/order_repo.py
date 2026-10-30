@@ -29,15 +29,16 @@ class OrderRepository:
         address: str,
         created_at: str,
         items: List[dict],
+        estimated_arrival_at: Optional[str] = None,
     ) -> dict:
         """Create an order and its associated order_items atomically in a transaction."""
         with self.conn:
             cursor = self.conn.execute(
                 """
-                INSERT INTO orders (restaurant_id, status, total_cents, address, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO orders (restaurant_id, status, total_cents, address, created_at, estimated_arrival_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (restaurant_id, status, total_cents, address, created_at),
+                (restaurant_id, status, total_cents, address, created_at, estimated_arrival_at),
             )
             order_id = cursor.lastrowid
             for item in items:
@@ -59,7 +60,7 @@ class OrderRepository:
         """Fetch an order with all of its order_items and item names."""
         cursor = self.conn.execute(
             """
-            SELECT id, restaurant_id, status, total_cents, address, created_at
+            SELECT id, restaurant_id, status, total_cents, address, created_at, estimated_arrival_at
             FROM orders
             WHERE id = ?
             """,

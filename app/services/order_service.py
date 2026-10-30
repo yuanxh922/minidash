@@ -4,6 +4,7 @@ from app.exceptions import NotFoundError, ValidationError
 from app.repository.order_repo import OrderRepository
 from app.repository.restaurant_repo import RestaurantRepository
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatus
+from app.services.eta_calculator import calculate_eta
 
 
 class OrderService:
@@ -71,8 +72,15 @@ class OrderService:
             )
 
         # 6. Save order atomically in repository
-        created_at = datetime.now(timezone.utc).isoformat()
+        transition_time = datetime.now(timezone.utc)
+        created_at = transition_time.isoformat()
         initial_status = OrderStatus.PLACED.value
+        avg_prep_minutes = restaurant["avg_prep_minutes"]
+        estimated_arrival_at = calculate_eta(
+            OrderStatus.PLACED,
+            transition_time,
+            avg_prep_minutes,
+        )
 
         created_order = self.order_repo.create_order(
             restaurant_id=order_data.restaurant_id,
@@ -81,6 +89,7 @@ class OrderService:
             address=clean_address,
             created_at=created_at,
             items=items_payload,
+            estimated_arrival_at=estimated_arrival_at,
         )
 
         return OrderResponse.model_validate(created_order)
