@@ -32,12 +32,29 @@ MiniDash/
 │       ├── __init__.py
 │       ├── restaurant_routes.py
 │       └── order_routes.py
+├── docs/                      # Engineering specifications & reports
+│   ├── requirements.md        # EARS acceptance criteria & requirements
+│   ├── design.md              # Architectural design & FSM state machine
+│   ├── tasks.md               # 8-slice test-driven implementation plan
+│   ├── REFLECTION_PROMPTS.md  # Section 7 reflection responses (Markdown)
+│   ├── reflection_prompts.html# Printable reflection report source
+│   └── reflection_prompts.pdf # Compiled reflection report (PDF)
+├── scripts/
+│   └── simulate_driver.py     # Driver advancement simulator CLI
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py            # Pytest fixtures & isolated test DB setup
 │   ├── test_client.py         # Zero-dependency ASGI test client
 │   ├── test_restaurants.py    # Tests for restaurant & menu endpoints
-│   └── test_orders.py         # Tests for order endpoints
+│   ├── test_orders.py         # Tests for order endpoints
+│   ├── test_schema.py         # Schema & migration tests (Slice 1)
+│   ├── test_eta.py            # Deterministic ETA engine tests (Slice 3)
+│   ├── test_fsm.py            # FSM transition tests (Slice 4)
+│   ├── test_tracking.py       # Tracking snapshot tests (Slice 5)
+│   ├── test_sse.py            # Server-Sent Events tests (Slice 6)
+│   ├── test_simulator.py      # Driver simulator CLI tests (Slice 7)
+│   └── test_e2e_tracking.py   # Full lifecycle E2E & regression tests (Slice 8)
+├── AI_LOG.md                  # Comprehensive AI interaction log
 ├── requirements.txt           # fastapi, uvicorn, pytest
 └── README.md
 ```

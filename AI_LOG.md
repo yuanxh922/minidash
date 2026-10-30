@@ -12,7 +12,7 @@ Use one entry per significant AI interaction. Copy this table into AI_LOG.md for
 | **Tool, model, mode** | Antigravity, Gemini 3.8 Flash, Agent mode |
 | **Slice** | Specification: Requirements & EARS Acceptance Criteria |
 | **Prompt (verbatim or summarized)** | Formulate EARS-compliant requirements specification for Track C (Live Order Tracking MVP) based on MiniDash food-delivery API requirements. Define acceptance criteria (AC-1.1 through AC-5.4) covering tracking snapshot, status lifecycle, deterministic ETA, SSE stream, and driver simulator. |
-| **What the AI produced** | `requirements.md` covering 5 functional areas, 20+ EARS criteria (Ubiquitous, Event-driven, State-driven, Unwanted behavior), data dictionaries, and non-functional requirements. |
+| **What the AI produced** | `docs/requirements.md` covering 5 functional areas, 20+ EARS criteria (Ubiquitous, Event-driven, State-driven, Unwanted behavior), data dictionaries, and non-functional requirements. |
 | **What I verified** | Verified all criteria against course rubric. Confirmed terminal states (`DELIVERED`, `CANCELLED`) were immutable and that cancellation constraints were explicit. |
 | **What I changed and why** | Refined AC-2.3 and AC-2.9 to explicitly distinguish HTTP 400 Bad Request (unrecognized status strings) from HTTP 409 Conflict (invalid lifecycle transitions), following REST best practices. |
 | **Outcome** | Accepted and committed as `docs: add requirements specification for TrackC live order tracking (MVP)` (PR #1). |
@@ -25,9 +25,9 @@ Use one entry per significant AI interaction. Copy this table into AI_LOG.md for
 | :--- | :--- |
 | **Entry # / date** | 2 / Oct 29, 12:45 pm |
 | **Tool, model, mode** | Antigravity, Gemini 3.8 Flash, Agent mode |
-| **Slice** | Architectural Design (`design.md`) |
+| **Slice** | Architectural Design (`docs/design.md`) |
 | **Prompt (verbatim or summarized)** | Create architectural design document for Track C adhering to MiniDash 3-layer architecture (routes -> service -> repository). Detail schema additions, SQLite migration strategy, FSM transition matrix, pure-function ETA calculation engine, in-memory broadcaster for SSE, and CLI simulator. |
-| **What the AI produced** | `design.md` with ASCII/Mermaid state diagrams, SQL DDL with indexing, schema migration strategy, concurrency considerations (single-writer SQLite), and component interface definitions. |
+| **What the AI produced** | `docs/design.md` with ASCII/Mermaid state diagrams, SQL DDL with indexing, schema migration strategy, concurrency considerations (single-writer SQLite), and component interface definitions. |
 | **What I verified** | Checked that no heavy external dependencies (Redis, Celery, or external message brokers) were introduced, keeping MiniDash zero-dependency beyond FastAPI/Uvicorn. Confirmed SQLite foreign key cascade behavior. |
 | **What I changed and why** | Removed suggested Redis pub/sub queue; replaced with in-memory `asyncio.Queue` broadcaster to maintain project simplicity and zero-configuration local execution. |
 | **Outcome** | Accepted and committed as `docs: add architectural design document for TrackC live order tracking` (PR #2). |
@@ -40,9 +40,9 @@ Use one entry per significant AI interaction. Copy this table into AI_LOG.md for
 | :--- | :--- |
 | **Entry # / date** | 3 / Oct 29, 2:15 pm |
 | **Tool, model, mode** | Antigravity, Gemini 3.8 Flash, Agent mode |
-| **Slice** | Implementation Plan (`tasks.md`) |
+| **Slice** | Implementation Plan (`docs/tasks.md`) |
 | **Prompt (verbatim or summarized)** | Decompose Track C architectural design into incremental, test-driven vertical slices. Each slice must have a clear scope, acceptance criteria mapping, files touched, and explicit pytest commands. |
-| **What the AI produced** | `tasks.md` with an 8-slice implementation roadmap, dependency graph, traceability matrix, and detailed test specifications for each slice. |
+| **What the AI produced** | `docs/tasks.md` with an 8-slice implementation roadmap, dependency graph, traceability matrix, and detailed test specifications for each slice. |
 | **What I verified** | Walked through the dependency tree to ensure Slices 1 through 8 could be built and tested incrementally without circular dependencies or broken interim states. |
 | **What I changed and why** | Reordered Slice 3 (ETA Engine) to precede Slice 4 (FSM) so order placement and status updates could immediately compute and persist deterministic ETAs. |
 | **Outcome** | Accepted and committed as `docs: add implementation tasks and verification slices for TrackC live order tracking` (PR #3). |
