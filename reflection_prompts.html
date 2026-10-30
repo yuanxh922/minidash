@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSCI-665 MiniDash Assignment: Reflection Prompts</title>
+<style>
+  @page {
+    size: letter;
+    margin: 14mm 16mm 14mm 16mm;
+  }
+
+  *, *:before, *:after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f2937;
+    background-color: #ffffff;
+    font-size: 9.5pt;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header-container {
+    border-bottom: 2px solid #1e3a8a;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  .course-label {
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #1e3a8a;
+    margin-bottom: 3px;
+  }
+
+  .doc-title {
+    font-size: 16pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .meta-grid {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: #4b5563;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .meta-item strong {
+    color: #111827;
+  }
+
+  .section-block {
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    border-bottom: 1.5px solid #dbeafe;
+    padding-bottom: 3px;
+    margin: 0 0 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-prompt {
+    background-color: #f8fafc;
+    border-left: 3.5px solid #3b82f6;
+    padding: 5px 10px;
+    font-size: 8.5pt;
+    color: #475569;
+    font-style: italic;
+    margin-bottom: 10px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .defect-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  .defect-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .defect-title {
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    font-size: 7pt;
+    font-weight: 700;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-danger {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .badge-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
+  .badge-primary {
+    background-color: #e0f2fe;
+    color: #075985;
+    border: 1px solid #bae6fd;
+  }
+
+  .field-row {
+    margin-bottom: 3px;
+    font-size: 9pt;
+  }
+
+  .field-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-label {
+    font-weight: 700;
+    color: #1e293b;
+    display: inline-block;
+    min-width: 90px;
+  }
+
+  .field-content {
+    color: #334155;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 8pt;
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .col-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .col-card-title {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 0;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  ul, ol {
+    margin: 4px 0 6px 16px;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 3px;
+    font-size: 9pt;
+    color: #334155;
+  }
+
+  p {
+    margin: 0 0 5px 0;
+    font-size: 9pt;
+    color: #334155;
+  }
+
+  .page-footer-note {
+    font-size: 7.5pt;
+    color: #94a3b8;
+    text-align: right;
+    margin-top: 10px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 3px;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="header-container">
+    <div class="course-label">CSCI-665 Software Engineering &middot; MiniDash Assignment &middot; Fall 2026</div>
+    <h1 class="doc-title">Section 7: Reflection Prompts</h1>
+    <div class="meta-grid">
+      <div class="meta-item"><strong>Student:</strong> Xiaohong Yuan (<code>xyuan04@nyit.edu</code>)</div>
+      <div class="meta-item"><strong>Student ID:</strong> 1360530</div>
+      <div class="meta-item"><strong>Track:</strong> Track C &mdash; Live Order Tracking (MVP)</div>
+    </div>
+  </div>
+
+  <!-- Prompt 1 -->
+  <div class="section-block">
+    <div class="section-title">
+      <span>1. Three Defects</span>
+      <span class="badge badge-danger">3 Specific Problems in AI Output</span>
+    </div>
+    <div class="section-prompt">
+      Describe three specific problems in AI output (wrong, risky, or wasteful). For each: what it was, how you found it, and how you fixed it.
+    </div>
+
+    <!-- Defect 1 -->
+    <div class="defect-card">
+      <div class="defect-header">
+        <h4 class="defect-title">Defect 1: Scope Creep &amp; Unrequested Heavy Infrastructure (Redis &amp; Celery)</h4>
+        <span class="badge badge-warning">Wasteful / Risky</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">What it was:</span>
+        <span class="field-content">During Slice 6 planning and architectural design (<code>design.md</code>) for real-time order tracking, the AI proposed introducing an external Redis Pub/Sub message broker and a Celery worker queue, adding two heavy third-party dependencies (<code>redis-py</code>, <code>celery</code>) and external daemon process orchestration.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I found it:</span>
+        <span class="field-content">Architectural review of <code>design.md</code> against project constraints. MiniDash is specified as an educational, self-contained REST API designed for instant local execution without external background daemons.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I fixed it:</span>
+        <span class="field-content">Rejected the external message broker entirely. Designed and implemented an in-memory, thread-safe pub/sub broadcaster class (<code>Broadcaster</code> in <code>app/services/broadcaster.py</code>) using Python's native <code>asyncio.Queue</code>, fulfilling Server-Sent Events (SSE) requirements with zero external infrastructure.</span>
+      </div>
+    </div>
+
+    <!-- Defect 2 -->
+    <div class="defect-card">
+      <div class="defect-header">
+        <h4 class="defect-title">Defect 2: Schema Validation Interception Violating Domain Contract (HTTP 422 vs. HTTP 400)</h4>
+        <span class="badge badge-danger">Wrong / Contract Violation</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">What it was:</span>
+        <span class="field-content">In Slice 1 (<code>app/schemas/order.py</code>) and Slice 4, the AI typed <code>OrderStatusUpdate.status: OrderStatus</code> (a Pydantic enum). When an invalid status string (e.g., <code>"FLYING"</code>) was sent to <code>PATCH /orders/{id}/status</code>, Pydantic automatically rejected the request with HTTP <code>422 Unprocessable Entity</code> before it reached the service layer.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I found it:</span>
+        <span class="field-content">Ran automated test verification against acceptance criterion <strong>AC-2.9</strong> (<em>"If the requested status is not a recognized OrderStatus enum value, MiniDash shall respond with HTTP 400 Bad Request"</em>). The test failed due to receiving HTTP 422 instead of HTTP 400.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I fixed it:</span>
+        <span class="field-content">Changed <code>OrderStatusUpdate.status</code> to plain <code>str</code> in Pydantic to allow raw inputs to reach <code>OrderService.update_order_status</code>. In the service layer, explicit domain logic validates against <code>OrderStatus.__members__</code>, returning HTTP <code>400 Bad Request</code> for unrecognized statuses, and HTTP <code>409 Conflict</code> for invalid FSM transitions.</span>
+      </div>
+    </div>
+
+    <!-- Defect 3 -->
+    <div class="defect-card">
+      <div class="defect-header">
+        <h4 class="defect-title">Defect 3: Non-Deterministic Ordering in Status History Queries</h4>
+        <span class="badge badge-warning">Wrong / Subtle Flakiness</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">What it was:</span>
+        <span class="field-content">In Slice 5 (<code>GET /orders/{id}/tracking</code>), the AI wrote the SQL query fetching tracking history as: <code>SELECT status, timestamp FROM order_status_history WHERE order_id = ? ORDER BY timestamp ASC</code>. Because automated tests and driver simulations advance states in sub-second intervals, sequential transitions shared identical timestamp strings in SQLite's ISO text format, resulting in sporadic out-of-order records.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I found it:</span>
+        <span class="field-content">Observed flaky test assertions in rapid simulation runs where the returned history array occasionally placed <code>READY</code> before <code>PREPARING</code> when both shared identical timestamp seconds.</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">How I fixed it:</span>
+        <span class="field-content">Modified the query to <code>ORDER BY id ASC</code> (supported by index <code>idx_order_status_history_order_id</code>). Because <code>id</code> is an auto-incrementing primary key, it guarantees strictly monotonic chronological ordering across all transitions regardless of clock resolution.</span>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer-note">CSCI-665 MiniDash &middot; Page 1 of 3</div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- Prompt 2 -->
+  <div class="section-block">
+    <div class="section-title">
+      <span>2. Where AI Helped Most and Least</span>
+      <span class="badge badge-primary">Comparative Workflow Analysis</span>
+    </div>
+    <div class="section-prompt">
+      Give one example of each and say why.
+    </div>
+
+    <div class="two-col-grid">
+      <div class="col-card">
+        <div class="col-card-title">
+          <span style="color: #16a34a; font-size: 10pt;">&#9650;</span>
+          <span>Helped Most: Test Scaffolding &amp; Matrix Coverage</span>
+        </div>
+        <p><strong>Example:</strong> Authoring the 47-test automated verification suite, particularly <code>tests/test_fsm.py</code> and <code>tests/test_eta.py</code>.</p>
+        <p><strong>Why:</strong> The FSM lifecycle contains a transition matrix of 6 distinct states (36 state pairs), plus conditional cancellation rules, terminal state immutability, and 400 vs 404 vs 409 error branches. Hand-writing boilerplate pytest fixtures, mock SQLite connections, and parameterized assertions for every permutation is tedious and error-prone. The AI rapidly synthesized exhaustive test cases directly from EARS criteria, providing immediate automated regression safety across every slice.</p>
+      </div>
+
+      <div class="col-card">
+        <div class="col-card-title">
+          <span style="color: #dc2626; font-size: 10pt;">&#9660;</span>
+          <span>Helped Least: Async Concurrency &amp; Stream Lifecycles</span>
+        </div>
+        <p><strong>Example:</strong> Implementing the Server-Sent Events (SSE) streaming endpoint (<code>GET /orders/{id}/tracking/stream</code>) with client disconnect detection in Slice 6.</p>
+        <p><strong>Why:</strong> The AI struggled with asynchronous generator lifecycles and Starlette streaming protocol subtleties. Its initial output used a blocking polling loop (<code>while True: await asyncio.sleep(1)</code>) that repeatedly queried SQLite rather than reacting to push events. It also failed to handle client disconnections, causing queue memory leaks. Human engineering was required to design the pub/sub listener pattern and guaranteed cleanup in <code>try...finally</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt 3 -->
+  <div class="section-block">
+    <div class="section-title">
+      <span>3. Prompting Progression Across Slices</span>
+      <span class="badge badge-primary">Prompt Engineering Evolution</span>
+    </div>
+    <div class="section-prompt">
+      What did you change about how you prompted between your first and last slice?
+    </div>
+
+    <p>Between Slice 1 and Slice 8, my prompting transitioned from <strong>open-ended conversational requests</strong> to <strong>strict contractual specifications</strong>:</p>
+    <ul>
+      <li><strong>Early Slices (Slices 1 &amp; 2):</strong> Prompts were conversational (e.g., <em>"Implement the database schema and models for tracking"</em>). This led to AI hallucinating unnecessary libraries, introducing extraneous helper modules, and defaulting to standard Pydantic validation patterns that violated our required HTTP error code contracts.</li>
+      <li><strong>Later Slices (Slices 6, 7 &amp; 8):</strong> Prompting evolved into structured contracts enforcing three guardrails:
+        <ol>
+          <li><strong>Strict File &amp; Scope Boundaries:</strong> Explicitly constrained files to touch and banned external packages (e.g., <em>"Modify only <code>app/services/broadcaster.py</code>. Zero new dependencies in <code>requirements.txt</code>. Use standard library <code>urllib</code> for CLI"</em>).</li>
+          <li><strong>EARS Acceptance Criteria Binding:</strong> Direct quotation of criteria (e.g., <em>"Satisfy AC-4.1, AC-4.2, and AC-4.4: return 200 with <code>text/event-stream</code>, emit initial snapshot immediately, auto-close stream on terminal status"</em>).</li>
+          <li><strong>Pre-emptive Failure Mode Constraints:</strong> Instructing edge-case handling before generation (e.g., <em>"Wrap consumer in <code>try...finally</code> to call <code>broadcaster.unsubscribe</code> on disconnect"</em>).</li>
+        </ol>
+      </li>
+    </ul>
+    <p><strong>Impact:</strong> Shifting to contract-first prompting eliminated scope creep and reduced iteration cycles from multiple manual correction rounds to single-shot passing code that satisfied all verification tests immediately.</p>
+  </div>
+  <div class="page-footer-note">CSCI-665 MiniDash &middot; Page 2 of 3</div>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- Prompt 4 -->
+  <div class="section-block">
+    <div class="section-title">
+      <span>4. A Decision You Did Not Delegate</span>
+      <span class="badge badge-primary">Architectural &amp; Quality Ownership</span>
+    </div>
+    <div class="section-prompt">
+      Name one design or quality decision you kept for yourself and explain why.
+    </div>
+
+    <p><strong>The Decision:</strong> <strong>Transactional FSM Invariants &amp; Database Rollback Strategy (Single-Source-of-Truth Lifecycle Integrity)</strong>.</p>
+    <p><strong>Explanation &amp; Why I Kept It:</strong> The AI repeatedly proposed checking state transitions in Python application memory before issuing an independent <code>UPDATE orders</code> statement, followed by an independent <code>INSERT INTO order_status_history</code> query without explicit database transaction demarcation.</p>
+    <p>State machines in concurrent web applications cannot rely on naive, non-atomic application-level checks. If the update to <code>orders</code> succeeds but the subsequent insert to <code>order_status_history</code> fails (e.g., due to constraint violation, disk failure, or process interruption), the system enters an illegal, corrupted state where an order has transitioned without an audit record. I deliberately reserved and enforced this architectural boundary:</p>
+    <ul>
+      <li>Wrapped state validation, <code>orders</code> update, and <code>order_status_history</code> insertion inside an atomic SQLite transaction (<code>BEGIN IMMEDIATE ... COMMIT / ROLLBACK</code>).</li>
+      <li>If any step fails, the entire transition is aborted cleanly, guaranteeing zero partial writes.</li>
+      <li>Enforced terminal states (<code>DELIVERED</code>, <code>CANCELLED</code>) as immutable mathematical sinks at the service boundary.</li>
+    </ul>
+    <p><strong>Engineering Rationale:</strong> Architectural integrity, fault domains, and transactional boundaries are non-delegable engineering responsibilities. LLMs optimize for syntactic completion of the happy path, whereas robust software engineering demands defensive design against partial failure modes.</p>
+  </div>
+
+  <!-- Prompt 5 -->
+  <div class="section-block">
+    <div class="section-title">
+      <span>5. Limits of Your Evidence</span>
+      <span class="badge badge-primary">Verification Boundary &amp; Future Hardening</span>
+    </div>
+    <div class="section-prompt">
+      What is still not verified in your feature, and how would you check it with more time?
+    </div>
+
+    <p>While our automated suite of 47 tests achieves 100% pass rate across functional requirements, three real-world operational aspects remain outside the scope of current automated evidence:</p>
+    <ol>
+      <li><strong>Multi-Worker ASGI Concurrency:</strong> The current SSE broadcaster relies on an in-process, in-memory <code>asyncio.Queue</code>. When deploying FastAPI with multiple worker processes (e.g., <code>uvicorn app.main:app --workers 4</code>), updates in Worker A will not trigger SSE pushes for client connections handled by Worker B.
+        <br><em>How to verify with more time:</em> Set up a multi-worker Uvicorn test harness with a shared IPC/Redis pub/sub backend and run concurrent multi-client simulations to verify cross-worker event delivery.</li>
+      <li><strong>High-Throughput SQLite Write Contention (<code>SQLITE_BUSY</code>):</strong> The automated test suite executes sequential or lightly concurrent requests. Under intense concurrent write traffic from dozens of simultaneous driver simulations, SQLite's single-writer architecture could experience lock contention.
+        <br><em>How to verify with more time:</em> Execute a Locust or <code>wrk</code> load test simulating 500 concurrent drivers advancing order statuses simultaneously to measure SQLite lock wait latency, p99 response times, and verify zero unhandled database lock exceptions.</li>
+      <li><strong>Transient Network Disconnection &amp; Event Replay:</strong> If a client's mobile network drops for 5 seconds and reconnects, the current SSE implementation emits the latest snapshot upon reconnection, but does not provide an HTTP <code>Last-Event-ID</code> replay buffer to reconstruct intermediate transient status transitions that occurred during the outage window.
+        <br><em>How to verify with more time:</em> Use Toxiproxy to inject random latency, packet drops, and socket termination into active SSE streams, asserting that clients recover with proper reconciliation.</li>
+    </ol>
+  </div>
+  <div class="page-footer-note">CSCI-665 MiniDash &middot; Page 3 of 3</div>
+
+</body>
+</html>
