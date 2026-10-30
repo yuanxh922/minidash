@@ -99,3 +99,27 @@ class OrderRepository:
                 return None
 
         return self.get_by_id(order_id)
+
+    def update_status_and_eta(
+        self,
+        order_id: int,
+        status: str,
+        estimated_arrival_at: Optional[str],
+        timestamp: str,
+    ) -> Optional[dict]:
+        """Atomically update an order's status and ETA, and record to history."""
+        with self.conn:
+            cursor = self.conn.execute(
+                """
+                UPDATE orders
+                SET status = ?, estimated_arrival_at = ?
+                WHERE id = ?
+                """,
+                (status, estimated_arrival_at, order_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+
+            self.record_status_history(order_id, status, timestamp)
+
+        return self.get_by_id(order_id)
