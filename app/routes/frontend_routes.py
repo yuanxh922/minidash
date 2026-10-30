@@ -1,6 +1,5 @@
-from functools import lru_cache
 from pathlib import Path
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
 router = APIRouter()
@@ -8,9 +7,8 @@ router = APIRouter()
 STATIC_INDEX_PATH = Path(__file__).resolve().parent.parent / "static" / "index.html"
 
 
-@lru_cache(maxsize=1)
 def get_frontend_html() -> str:
-    """Read and cache the frontend HTML document."""
+    """Read the frontend HTML document from disk."""
     if STATIC_INDEX_PATH.is_file():
         return STATIC_INDEX_PATH.read_text(encoding="utf-8")
     return "<h1>MiniDash UI</h1><p>Frontend template not found.</p>"

@@ -1413,23 +1413,41 @@
       try {
         state.eventSource = new EventSource(`/orders/${orderId}/tracking/stream`);
 
-        state.eventSource.onmessage = (event) => {
+        const handleIncomingData = (raw) => {
           try {
-            const data = JSON.parse(event.data);
+            const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
             pulse.style.background = 'var(--success)';
             statusText.textContent = `🟢 Live SSE Stream Connected`;
             updateTrackingUI(data);
           } catch (e) {
-            console.error('SSE parse error:', e);
+            console.error('SSE JSON parse error:', e);
           }
         };
 
+        // When connection is opened
+        state.eventSource.onopen = () => {
+          pulse.style.background = 'var(--success)';
+          statusText.textContent = `🟢 Live SSE Stream Connected`;
+        };
+
+        // Server emits named event: tracking_update
+        state.eventSource.addEventListener('tracking_update', (event) => {
+          handleIncomingData(event.data);
+        });
+
+        // Fallback for default unnamed events
+        state.eventSource.onmessage = (event) => {
+          handleIncomingData(event.data);
+        };
+
         state.eventSource.onerror = (err) => {
-          pulse.style.background = 'var(--text-muted)';
-          // If terminal, stream naturally closed
-          if (state.currentTrackingOrder && (state.currentTrackingOrder.status === 'DELIVERED' || state.currentTrackingOrder.status === 'CANCELLED')) {
-            statusText.textContent = `Stream closed (Terminal State)`;
+          const curr = state.currentTrackingOrder ? (state.currentTrackingOrder.current_status || state.currentTrackingOrder.status) : null;
+          if (curr === 'DELIVERED' || curr === 'CANCELLED') {
+            pulse.style.background = 'var(--text-muted)';
+            statusText.textContent = `Stream closed (${curr})`;
+            closeEventSource();
           } else {
+            pulse.style.background = 'var(--warning)';
             statusText.textContent = `SSE Reconnecting...`;
           }
         };
@@ -1446,13 +1464,21 @@
     }
 
     function updateTrackingUI(data) {
-      state.currentTrackingOrder = data;
+      // Backend schema uses current_status (OrderTrackingResponse) or status (OrderResponse)
+      const currentStatus = data.current_status || data.status || 'PLACED';
+      const orderId = data.order_id || data.id;
+
+      state.currentTrackingOrder = {
+        ...data,
+        order_id: orderId,
+        current_status: currentStatus,
+        status: currentStatus
+      };
 
       document.getElementById('tracking-empty-placeholder').style.display = 'none';
       document.getElementById('tracking-display').style.display = 'block';
-      document.getElementById('meta-order-id').textContent = data.order_id;
+      document.getElementById('meta-order-id').textContent = orderId;
 
-      const currentStatus = data.status;
       const meta = STATUS_METADATA[currentStatus] || {
         title: currentStatus,
         desc: 'Processing...',
@@ -1513,9 +1539,10 @@
       if (data.history && data.history.length > 0) {
         data.history.forEach((h, i) => {
           const tr = document.createElement('tr');
+          const hStatus = h.status || 'UNKNOWN';
           tr.innerHTML = `
             <td>#${h.id || (i + 1)}</td>
-            <td><span class="history-badge badge-${h.status}">${h.status}</span></td>
+            <td><span class="history-badge badge-${hStatus}">${hStatus}</span></td>
             <td>${h.timestamp ? new Date(h.timestamp).toUTCString() : 'N/A'}</td>
             <td><span style="color:var(--text-muted); font-size: 0.8rem;">${timeAgo(h.timestamp)}</span></td>
           `;
@@ -1565,10 +1592,11 @@
     // Advance status via PATCH
     async function advanceOrderStatus() {
       if (!state.currentTrackingOrder) return;
-      const next = getNextStatus(state.currentTrackingOrder.status);
+      const curr = state.currentTrackingOrder.current_status || state.currentTrackingOrder.status;
+      const next = getNextStatus(curr);
       if (!next) return;
 
-      const orderId = state.currentTrackingOrder.order_id;
+      const orderId = state.currentTrackingOrder.order_id || state.currentTrackingOrder.id;
       try {
         const res = await fetch(`/orders/${orderId}/status`, {
           method: 'PATCH',
@@ -1580,6 +1608,13 @@
           throw new Error(err.detail || 'Transition failed');
         }
         showToast(`Order status advanced to ${next}`, 'success');
+
+        // Immediately refresh snapshot without waiting
+        const snapRes = await fetch(`/orders/${orderId}/tracking`);
+        if (snapRes.ok) {
+          const snapData = await snapRes.json();
+          updateTrackingUI(snapData);
+        }
       } catch (err) {
         showToast(err.message, 'error');
         stopAutoAdvancement();
@@ -1589,7 +1624,7 @@
     // Cancel order via PATCH
     async function cancelCurrentOrder() {
       if (!state.currentTrackingOrder) return;
-      const orderId = state.currentTrackingOrder.order_id;
+      const orderId = state.currentTrackingOrder.order_id || state.currentTrackingOrder.id;
 
       if (!confirm(`Are you sure you want to cancel Order #${orderId}?`)) return;
 
@@ -1604,6 +1639,12 @@
           throw new Error(err.detail || 'Cancel failed');
         }
         showToast(`Order #${orderId} cancelled`, 'info');
+
+        const snapRes = await fetch(`/orders/${orderId}/tracking`);
+        if (snapRes.ok) {
+          const snapData = await snapRes.json();
+          updateTrackingUI(snapData);
+        }
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -1620,7 +1661,8 @@
 
     function startAutoAdvancement() {
       if (!state.currentTrackingOrder) return;
-      if (state.currentTrackingOrder.status === 'DELIVERED' || state.currentTrackingOrder.status === 'CANCELLED') {
+      const curr = state.currentTrackingOrder.current_status || state.currentTrackingOrder.status;
+      if (curr === 'DELIVERED' || curr === 'CANCELLED') {
         showToast('Order is already in a terminal state', 'info');
         return;
       }
@@ -1632,13 +1674,16 @@
 
       showToast('Driver simulation started — advancing every 2.5s...', 'info');
 
+      // Trigger first advancement immediately
+      advanceOrderStatus();
+
       state.autoSimulateTimer = setInterval(async () => {
         if (!state.currentTrackingOrder) {
           stopAutoAdvancement();
           return;
         }
-        const curr = state.currentTrackingOrder.status;
-        if (curr === 'DELIVERED' || curr === 'CANCELLED') {
+        const st = state.currentTrackingOrder.current_status || state.currentTrackingOrder.status;
+        if (st === 'DELIVERED' || st === 'CANCELLED') {
           stopAutoAdvancement();
           return;
         }
