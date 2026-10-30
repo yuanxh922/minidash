@@ -3,18 +3,21 @@ from typing import List, Set
 from app.exceptions import NotFoundError, ValidationError
 from app.repository.order_repo import OrderRepository
 from app.repository.restaurant_repo import RestaurantRepository
-from app.schemas.order import OrderCreate, OrderResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderStatus
 
 
 class OrderService:
     """Service layer managing business logic, validations, and transactions for orders."""
 
     ALLOWED_STATUSES: Set[str] = {
+        OrderStatus.PLACED.value,
+        OrderStatus.PREPARING.value,
+        OrderStatus.READY.value,
+        OrderStatus.PICKED_UP.value,
+        OrderStatus.DELIVERED.value,
+        OrderStatus.CANCELLED.value,
         "PENDING",
-        "PREPARING",
         "OUT_FOR_DELIVERY",
-        "DELIVERED",
-        "CANCELLED",
     }
 
     def __init__(self, order_repo: OrderRepository, restaurant_repo: RestaurantRepository):
@@ -69,7 +72,7 @@ class OrderService:
 
         # 6. Save order atomically in repository
         created_at = datetime.now(timezone.utc).isoformat()
-        initial_status = "PENDING"
+        initial_status = OrderStatus.PLACED.value
 
         created_order = self.order_repo.create_order(
             restaurant_id=order_data.restaurant_id,
