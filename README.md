@@ -13,25 +13,27 @@ MiniDash/
 ├── app/
 │   ├── __init__.py
 │   ├── config.py              # Configuration & database path
-│   ├── database.py            # SQLite connection, DDL, and auto-seeding
-│   ├── exceptions.py          # Domain-level exceptions (NotFoundError, ValidationError)
+│   ├── database.py            # SQLite connection, DDL migrations, and auto-seeding
+│   ├── exceptions.py          # Domain exceptions (NotFoundError, ValidationError, ConflictError)
 │   ├── main.py                # FastAPI app setup, exception handlers, routers
 │   ├── schemas/               # Pydantic validation & response models
 │   │   ├── __init__.py
-│   │   ├── restaurant.py
-│   │   └── order.py
-│   ├── repository/            # Data access layer (SQL queries & transactions)
+│   │   ├── restaurant.py      # Restaurant & menu response schemas
+│   │   └── order.py           # Order, OrderStatus enum, ETA, tracking snapshot & history models
+│   ├── repository/            # Data access layer (SQL queries & atomic transactions)
 │   │   ├── __init__.py
-│   │   ├── restaurant_repo.py
-│   │   └── order_repo.py
-│   ├── services/              # Business logic & validation layer
+│   │   ├── restaurant_repo.py # Restaurant & menu queries
+│   │   └── order_repo.py      # Atomic order creation, FSM updates & tracking history
+│   ├── services/              # Business logic & domain engine layer
 │   │   ├── __init__.py
-│   │   ├── restaurant_service.py
-│   │   └── order_service.py
-│   └── routes/                # HTTP API endpoints & routing
+│   │   ├── restaurant_service.py # Restaurant & menu business logic
+│   │   ├── order_service.py      # Order placement, FSM lifecycle & tracking queries
+│   │   ├── eta_calculator.py     # Pure deterministic ETA calculation engine (Track C)
+│   │   └── broadcaster.py        # In-memory pub/sub for real-time SSE streaming (Track C)
+│   └── routes/                # HTTP API & streaming endpoints
 │       ├── __init__.py
-│       ├── restaurant_routes.py
-│       └── order_routes.py
+│       ├── restaurant_routes.py # Restaurant & menu REST endpoints
+│       └── order_routes.py      # Order CRUD, tracking snapshot & SSE stream
 ├── docs/                      # Engineering specifications & reports
 │   ├── requirements.md        # EARS acceptance criteria & requirements
 │   ├── design.md              # Architectural design & FSM state machine
@@ -40,7 +42,7 @@ MiniDash/
 │   ├── reflection_prompts.html# Printable reflection report source
 │   └── reflection_prompts.pdf # Compiled reflection report (PDF)
 ├── scripts/
-│   └── simulate_driver.py     # Driver advancement simulator CLI
+│   └── simulate_driver.py     # Driver advancement simulator CLI (Track C)
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py            # Pytest fixtures & isolated test DB setup
@@ -59,24 +61,28 @@ MiniDash/
 └── README.md
 ```
 
-1. **Routes (`app/routes/`)**: Receives HTTP requests, coordinates with FastAPI dependency injection, validates parameters, and delegates business tasks to the service layer.
-2. **Services (`app/services/`)**: Enforces business logic and domain invariants:
-   - Verifies restaurant existence before order placement or menu lookups.
-   - Ensures all ordered items belong to the requested restaurant.
-   - Calculates total price from persisted menu item unit prices.
-   - Validates order status transitions against allowed lifecycle states.
-3. **Repository (`app/repository/`)**: Executes raw SQLite operations with `sqlite3.Row` and foreign key constraints enabled. Atomic operations (such as creating an order and its items) execute inside transactions.
+1. **Routes (`app/routes/`)**: Receives HTTP and streaming requests, coordinates FastAPI dependency injection, validates parameters, and delegates business workflows to the service layer:
+   - Exposes REST endpoints for restaurant discovery and order management.
+   - Provides live order tracking polling snapshot (`GET /orders/{id}/tracking`).
+   - Serves reactive Server-Sent Events stream (`GET /orders/{id}/tracking/stream`) with `text/event-stream`.
+2. **Services (`app/services/`)**: Enforces core domain invariants, lifecycle state machines, and real-time event broadcasting:
+   - **Order Lifecycle FSM**: Strictly enforces valid forward state transitions (`PLACED` -> `PREPARING` -> `READY` -> `PICKED_UP` -> `DELIVERED`), conditional cancellation (`PLACED` only), and immutable terminal states (`DELIVERED`, `CANCELLED`).
+   - **Deterministic ETA Engine (`eta_calculator.py`)**: Pure functional calculator computing estimated arrival times based on restaurant preparation baseline, line item count, and current status transit offsets.
+   - **In-Memory Broadcaster (`broadcaster.py`)**: Thread-safe pub/sub engine using `asyncio.Queue` to push live status updates to active SSE clients with guaranteed subscriber cleanup on disconnect.
+   - **Cart & Restaurant Invariants**: Verifies restaurant hours and item association, calculating total pricing from database unit prices.
+3. **Repository (`app/repository/`)**: Executes raw SQLite operations with `sqlite3.Row` and foreign key constraints enabled. Wraps state updates and audit logging inside atomic database transactions (`BEGIN IMMEDIATE ... COMMIT / ROLLBACK`), ensuring `orders` and `order_status_history` are updated synchronously with zero partial writes.
 
 ---
 
 ## 🗄 Database Schema
 
-The database uses SQLite with 4 tables:
+The database uses SQLite with 5 tables:
 
 - **`restaurants`**: `(id, name, cuisine, opens_at, closes_at, avg_prep_minutes)`
 - **`menu_items`**: `(id, restaurant_id, name, price_cents)`
-- **`orders`**: `(id, restaurant_id, status, total_cents, address, created_at)`
+- **`orders`**: `(id, restaurant_id, status, total_cents, address, created_at, estimated_arrival_at)`
 - **`order_items`**: `(id, order_id, menu_item_id, quantity, unit_price_cents)`
+- **`order_status_history`**: `(id, order_id, status, timestamp)` &mdash; indexed on `order_id` to provide a strictly chronological audit history of lifecycle events.
 
 ### Seeded Restaurants
 On initial startup, 5 restaurants with realistic menus are automatically seeded:
@@ -240,10 +246,11 @@ curl -X POST http://127.0.0.1:8000/orders \
 {
   "id": 1,
   "restaurant_id": 1,
-  "status": "PENDING",
+  "status": "PLACED",
   "total_cents": 2697,
   "address": "123 Main St, Apt 4B",
   "created_at": "2026-10-29T15:20:00.000000+00:00",
+  "estimated_arrival_at": "2026-10-29T15:46:00+00:00",
   "items": [
     {
       "id": 1,
@@ -285,10 +292,11 @@ curl -X GET http://127.0.0.1:8000/orders/1
 {
   "id": 1,
   "restaurant_id": 1,
-  "status": "PENDING",
+  "status": "PLACED",
   "total_cents": 2697,
   "address": "123 Main St, Apt 4B",
   "created_at": "2026-10-29T15:20:00.000000+00:00",
+  "estimated_arrival_at": "2026-10-29T15:46:00+00:00",
   "items": [
     {
       "id": 1,
@@ -316,14 +324,15 @@ curl -X GET http://127.0.0.1:8000/orders/1
 ---
 
 ### 5. `PATCH /orders/{id}/status`
-Update an order's status.
+Update an order's status following strict finite state machine (FSM) lifecycle transitions.
 
 **Allowed Statuses:**
-- `PENDING`
+- `PLACED` (initial state)
 - `PREPARING`
-- `OUT_FOR_DELIVERY`
-- `DELIVERED`
-- `CANCELLED`
+- `READY`
+- `PICKED_UP`
+- `DELIVERED` (terminal state)
+- `CANCELLED` (terminal state, allowed only from `PLACED`)
 
 **Request:**
 ```bash
@@ -343,6 +352,7 @@ curl -X PATCH http://127.0.0.1:8000/orders/1/status \
   "total_cents": 2697,
   "address": "123 Main St, Apt 4B",
   "created_at": "2026-10-29T15:20:00.000000+00:00",
+  "estimated_arrival_at": "2026-10-29T15:46:00+00:00",
   "items": [
     {
       "id": 1,
@@ -365,5 +375,69 @@ curl -X PATCH http://127.0.0.1:8000/orders/1/status \
 ```
 
 **Errors:**
+- `400 Bad Request` if an unrecognized status string is supplied.
 - `404 Not Found` if order does not exist.
-- `400 Bad Request` if an invalid status value is supplied.
+- `409 Conflict` if the requested transition violates the FSM transition rules or attempts to modify a terminal order (`DELIVERED` or `CANCELLED`).
+
+---
+
+### 6. `GET /orders/{id}/tracking`
+Retrieve the current live tracking snapshot, dynamic ETA, and full chronological status history for an order.
+
+**Request:**
+```bash
+curl -X GET http://127.0.0.1:8000/orders/1/tracking
+```
+
+**Response (200 OK):**
+```json
+{
+  "order_id": 1,
+  "current_status": "PREPARING",
+  "estimated_arrival_at": "2026-10-29T15:46:00+00:00",
+  "history": [
+    {
+      "status": "PLACED",
+      "timestamp": "2026-10-29T15:20:00+00:00"
+    },
+    {
+      "status": "PREPARING",
+      "timestamp": "2026-10-29T15:24:00+00:00"
+    }
+  ]
+}
+```
+
+**Errors:**
+- `404 Not Found` if order does not exist.
+
+---
+
+### 7. `GET /orders/{id}/tracking/stream`
+Stream real-time tracking events for an order using Server-Sent Events (SSE). Emits the current snapshot immediately upon connection, pushes events on status transitions, and automatically terminates the stream when the order reaches a terminal state (`DELIVERED` or `CANCELLED`).
+
+**Request:**
+```bash
+curl -N -H "Accept: text/event-stream" http://127.0.0.1:8000/orders/1/tracking/stream
+```
+
+**Stream Output (`text/event-stream`):**
+```
+data: {"order_id": 1, "current_status": "PREPARING", "estimated_arrival_at": "2026-10-29T15:46:00+00:00", "history": [{"status": "PLACED", "timestamp": "2026-10-29T15:20:00+00:00"}, {"status": "PREPARING", "timestamp": "2026-10-29T15:24:00+00:00"}]}
+
+data: {"order_id": 1, "current_status": "READY", "estimated_arrival_at": "2026-10-29T15:44:00+00:00", "history": [{"status": "PLACED", "timestamp": "2026-10-29T15:20:00+00:00"}, {"status": "PREPARING", "timestamp": "2026-10-29T15:24:00+00:00"}, {"status": "READY", "timestamp": "2026-10-29T15:29:00+00:00"}]}
+```
+
+---
+
+## 🚗 Driver Simulator CLI
+
+MiniDash provides an automated driver advancement simulator CLI to step an active order through all remaining lifecycle stages (`PLACED` -> `PREPARING` -> `READY` -> `PICKED_UP` -> `DELIVERED`).
+
+```bash
+# Advance order #1 with a 1.5s delay between status transitions
+python -m scripts.simulate_driver --order-id 1 --delay 1.5
+
+# Advance order #1 against custom base URL with verbose logging
+python -m scripts.simulate_driver --order-id 1 --base-url http://127.0.0.1:8000 --verbose
+```
