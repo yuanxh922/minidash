@@ -1,3 +1,8 @@
+import sqlite3
+import pytest
+from app.repository.order_repo import OrderRepository
+
+
 def test_create_order_success(client):
     """Test POST /orders successfully places an order and calculates total_cents."""
     # Restaurant 1 has menu items: Classic Smashburger (1099) and Seasoned Fries (499)
@@ -16,7 +21,7 @@ def test_create_order_success(client):
     order = response.json()
     assert order["id"] is not None
     assert order["restaurant_id"] == 1
-    assert order["status"] == "PENDING"
+    assert order["status"] == "PLACED"
     assert order["address"] == "456 Elm St, Suite 2"
     assert order["total_cents"] == 2697
     assert "created_at" in order
@@ -98,6 +103,67 @@ def test_create_order_empty_address(client):
     assert response.status_code == 400
     data = response.json()
     assert "detail" in data
+
+
+def test_create_order_initializes_placed_and_records_history(client, db_conn):
+    """Test POST /orders initializes order status to PLACED and records initial history entry."""
+    payload = {
+        "restaurant_id": 1,
+        "address": "456 Elm St, Suite 2",
+        "items": [
+            {"menu_item_id": 1, "quantity": 2},
+            {"menu_item_id": 3, "quantity": 1},
+        ],
+    }
+    response = client.post("/orders", json=payload)
+    assert response.status_code == 201
+
+    order = response.json()
+    assert order["status"] == "PLACED"
+    created_id = order["id"]
+    created_at = order["created_at"]
+
+    # Directly query order_status_history in db_conn where order_id = created_id
+    cur = db_conn.execute(
+        "SELECT order_id, status, timestamp FROM order_status_history WHERE order_id = ?;",
+        (created_id,),
+    )
+    rows = cur.fetchall()
+    assert len(rows) == 1
+    assert rows[0]["status"] == "PLACED"
+    assert rows[0]["timestamp"] == created_at
+
+
+def test_create_order_transactional_rollback(client, monkeypatch, db_conn):
+    """Verify transaction rollback when order_status_history insertion fails."""
+    def failing_record_status_history(*args, **kwargs):
+        raise sqlite3.OperationalError("Simulated database failure during history insert")
+
+    monkeypatch.setattr(OrderRepository, "record_status_history", failing_record_status_history)
+    if hasattr(OrderRepository, "_record_status_history"):
+        monkeypatch.setattr(OrderRepository, "_record_status_history", failing_record_status_history)
+
+    payload = {
+        "restaurant_id": 1,
+        "address": "456 Elm St, Suite 2",
+        "items": [
+            {"menu_item_id": 1, "quantity": 2},
+            {"menu_item_id": 3, "quantity": 1},
+        ],
+    }
+
+    with pytest.raises(sqlite3.OperationalError):
+        client.post("/orders", json=payload)
+
+    cur = db_conn.execute("SELECT COUNT(*) as cnt FROM orders;")
+    assert cur.fetchone()["cnt"] == 0
+
+    cur = db_conn.execute("SELECT COUNT(*) as cnt FROM order_items;")
+    assert cur.fetchone()["cnt"] == 0
+
+    cur = db_conn.execute("SELECT COUNT(*) as cnt FROM order_status_history;")
+    assert cur.fetchone()["cnt"] == 0
+
 
 
 def test_get_order_success(client):

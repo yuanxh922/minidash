@@ -8,6 +8,19 @@ class OrderRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
+    def record_status_history(self, order_id: int, status: str, timestamp: str) -> None:
+        """Insert a status transition record into order_status_history."""
+        self._record_status_history(order_id, status, timestamp)
+
+    def _record_status_history(self, order_id: int, status: str, timestamp: str) -> None:
+        self.conn.execute(
+            """
+            INSERT INTO order_status_history (order_id, status, timestamp)
+            VALUES (?, ?, ?)
+            """,
+            (order_id, status, timestamp),
+        )
+
     def create_order(
         self,
         restaurant_id: int,
@@ -35,6 +48,7 @@ class OrderRepository:
                     """,
                     (order_id, item["menu_item_id"], item["quantity"], item["unit_price_cents"]),
                 )
+            self.record_status_history(order_id, status, created_at)
 
         created = self.get_by_id(order_id)
         if not created:
