@@ -218,18 +218,23 @@ def test_update_order_status_success(client):
     assert patch_res.status_code == 200
     assert patch_res.json()["status"] == "PREPARING"
 
-    # Update to OUT_FOR_DELIVERY
-    patch_res2 = client.patch(f"/orders/{order_id}/status", json={"status": "OUT_FOR_DELIVERY"})
+    # Update to READY
+    patch_res2 = client.patch(f"/orders/{order_id}/status", json={"status": "READY"})
     assert patch_res2.status_code == 200
-    assert patch_res2.json()["status"] == "OUT_FOR_DELIVERY"
+    assert patch_res2.json()["status"] == "READY"
+
+    # Update to PICKED_UP
+    patch_res3 = client.patch(f"/orders/{order_id}/status", json={"status": "PICKED_UP"})
+    assert patch_res3.status_code == 200
+    assert patch_res3.json()["status"] == "PICKED_UP"
 
     # Verify through GET
     get_res = client.get(f"/orders/{order_id}")
-    assert get_res.json()["status"] == "OUT_FOR_DELIVERY"
+    assert get_res.json()["status"] == "PICKED_UP"
 
 
 def test_update_order_status_invalid(client):
-    """Test PATCH /orders/{id}/status returns 400 for invalid status string."""
+    """Test PATCH /orders/{id}/status returns 400 for invalid status string or invalid transition."""
     create_res = client.post(
         "/orders",
         json={
@@ -240,11 +245,18 @@ def test_update_order_status_invalid(client):
     )
     order_id = create_res.json()["id"]
 
+    # Unknown status string
     patch_res = client.patch(f"/orders/{order_id}/status", json={"status": "FLYING_DRONE"})
     assert patch_res.status_code == 400
     data = patch_res.json()
     assert "detail" in data
     assert "Invalid status" in data["detail"]
+
+    # Invalid transition (PLACED -> READY skips PREPARING)
+    patch_res_skip = client.patch(f"/orders/{order_id}/status", json={"status": "READY"})
+    assert patch_res_skip.status_code == 400
+    data_skip = patch_res_skip.json()
+    assert "detail" in data_skip
 
 
 def test_update_order_status_not_found(client):
