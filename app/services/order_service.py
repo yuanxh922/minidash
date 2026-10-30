@@ -4,6 +4,7 @@ from app.exceptions import NotFoundError, ValidationError
 from app.repository.order_repo import OrderRepository
 from app.repository.restaurant_repo import RestaurantRepository
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatus, OrderTrackingResponse
+from app.services.broadcaster import OrderBroadcaster, order_broadcaster
 from app.services.eta_calculator import calculate_eta
 
 VALID_TRANSITIONS: Dict[OrderStatus, Set[OrderStatus]] = {
@@ -22,9 +23,15 @@ class OrderService:
     VALID_TRANSITIONS = VALID_TRANSITIONS
     ALLOWED_STATUSES: Set[str] = {s.value for s in OrderStatus}
 
-    def __init__(self, order_repo: OrderRepository, restaurant_repo: RestaurantRepository):
+    def __init__(
+        self,
+        order_repo: OrderRepository,
+        restaurant_repo: RestaurantRepository,
+        broadcaster: Optional[OrderBroadcaster] = None,
+    ):
         self.order_repo = order_repo
         self.restaurant_repo = restaurant_repo
+        self.broadcaster = broadcaster or order_broadcaster
 
     def create_order(self, order_data: OrderCreate) -> OrderResponse:
         """Validate restaurant, menu items, address, compute total, and create order."""
@@ -173,5 +180,9 @@ class OrderService:
         )
         if not updated_order:
             raise NotFoundError(f"Order with id {order_id} not found")
+
+        # 8. Broadcast live tracking snapshot to active subscribers
+        tracking = self.get_order_tracking(order_id)
+        self.broadcaster.broadcast(order_id, tracking.model_dump(mode="json"))
 
         return OrderResponse.model_validate(updated_order)
