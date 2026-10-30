@@ -166,3 +166,18 @@ Use one entry per significant AI interaction. Copy this table into AI_LOG.md for
 | **What I verified** | Ran `.venv/bin/pytest -v` across the entire test suite (47 passed in 0.61s). Checked test coverage across all slices. |
 | **What I changed and why** | Adjusted async event gathering in the e2e test to coordinate with `broadcaster.publish` without race conditions or timeouts. |
 | **Outcome** | Accepted and committed as `feat(test): add end-to-end tracking lifecycle and regression suite (Slice 8)` (PR #11). |
+
+---
+
+### Entry 12: Interactive Web Frontend & Real-Time Tracking UI
+
+| Field | Your entry |
+| :--- | :--- |
+| **Entry # / date** | 12 / Oct 30, 10:25 am |
+| **Tool, model, mode** | Antigravity, Gemini 3.8 Flash, Agent mode |
+| **Slice** | Frontend: Web Dashboard & Live Order Tracker |
+| **Prompt (verbatim or summarized)** | Add a simple frontend page to MiniDash and open a new pull request for it. Must support restaurant discovery, cart management, order placement, and live real-time tracking with SSE updates and simulation controls. |
+| **What the AI produced** | `app/static/index.html` (responsive single-page app in vanilla HTML/CSS/JS without external CDN dependencies), `app/routes/frontend_routes.py` (`/ui`, `/dashboard`), root content negotiation in `app/main.py` preserving JSON health checks for API clients while serving HTML to browsers, and `tests/test_frontend.py`. |
+| **What I verified** | Ran `.venv/bin/pytest -v` across all 53 test cases (all passed). Verified content negotiation between browser `Accept: text/html` and API `Accept: application/json` or default client requests. Verified zero extra runtime dependencies added. |
+| **What I changed and why** | Ensured zero new dependencies were required by using vanilla HTML5/CSS3/ES6 and FastAPI's native `HTMLResponse` rather than installing template engines or static files handlers that require `aiofiles`. Maintained 100% backward compatibility for all existing API tests. |
+| **Outcome** | Accepted and committed as `feat(ui): add interactive web frontend for ordering and live tracking` (PR #12). |
