@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Set
 from app.exceptions import NotFoundError, ValidationError
 from app.repository.order_repo import OrderRepository
 from app.repository.restaurant_repo import RestaurantRepository
-from app.schemas.order import OrderCreate, OrderResponse, OrderStatus
+from app.schemas.order import OrderCreate, OrderResponse, OrderStatus, OrderTrackingResponse
 from app.services.eta_calculator import calculate_eta
 
 VALID_TRANSITIONS: Dict[OrderStatus, Set[OrderStatus]] = {
@@ -101,6 +101,13 @@ class OrderService:
         if not order_data:
             raise NotFoundError(f"Order with id {order_id} not found")
         return OrderResponse.model_validate(order_data)
+
+    def get_order_tracking(self, order_id: int) -> OrderTrackingResponse:
+        """Fetch tracking snapshot and chronological history for an order."""
+        tracking_data = self.order_repo.get_tracking(order_id)
+        if not tracking_data:
+            raise NotFoundError(f"Order with id {order_id} not found")
+        return OrderTrackingResponse(**tracking_data)
 
     def update_order_status(self, order_id: int, status: str) -> OrderResponse:
         """Validate status, enforce FSM transitions, calculate new ETA, and update atomically."""
