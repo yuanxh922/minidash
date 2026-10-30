@@ -16,6 +16,8 @@ MiniDash/
 │   ├── database.py            # SQLite connection, DDL migrations, and auto-seeding
 │   ├── exceptions.py          # Domain exceptions (NotFoundError, ValidationError, ConflictError)
 │   ├── main.py                # FastAPI app setup, exception handlers, routers
+│   ├── static/
+│   │   └── index.html         # Responsive vanilla single-page UI (ordering & live SSE tracking)
 │   ├── schemas/               # Pydantic validation & response models
 │   │   ├── __init__.py
 │   │   ├── restaurant.py      # Restaurant & menu response schemas
@@ -32,6 +34,7 @@ MiniDash/
 │   │   └── broadcaster.py        # In-memory pub/sub for real-time SSE streaming (Track C)
 │   └── routes/                # HTTP API & streaming endpoints
 │       ├── __init__.py
+│       ├── frontend_routes.py   # Web frontend & dashboard routes
 │       ├── restaurant_routes.py # Restaurant & menu REST endpoints
 │       └── order_routes.py      # Order CRUD, tracking snapshot & SSE stream
 ├── docs/                      # Engineering specifications & reports
@@ -47,6 +50,7 @@ MiniDash/
 │   ├── __init__.py
 │   ├── conftest.py            # Pytest fixtures & isolated test DB setup
 │   ├── test_client.py         # Zero-dependency ASGI test client
+│   ├── test_frontend.py       # Tests for frontend UI & content negotiation
 │   ├── test_restaurants.py    # Tests for restaurant & menu endpoints
 │   ├── test_orders.py         # Tests for order endpoints
 │   ├── test_schema.py         # Schema & migration tests (Slice 1)
@@ -118,6 +122,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 Once running:
+- **Interactive Web Frontend**: [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui) (or [http://127.0.0.1:8000/](http://127.0.0.1:8000/) directly in any browser)
 - **Interactive OpenAPI Documentation (Swagger UI)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **ReDoc Documentation**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
@@ -427,6 +432,20 @@ data: {"order_id": 1, "current_status": "PREPARING", "estimated_arrival_at": "20
 
 data: {"order_id": 1, "current_status": "READY", "estimated_arrival_at": "2026-10-29T15:44:00+00:00", "history": [{"status": "PLACED", "timestamp": "2026-10-29T15:20:00+00:00"}, {"status": "PREPARING", "timestamp": "2026-10-29T15:24:00+00:00"}, {"status": "READY", "timestamp": "2026-10-29T15:29:00+00:00"}]}
 ```
+
+---
+
+### 8. `GET /ui` & `GET /` (Web Frontend)
+Serves the responsive single-page application for restaurant browsing, interactive order placement, and live real-time order tracking with Server-Sent Events.
+
+- **URL**: `http://127.0.0.1:8000/ui` or `http://127.0.0.1:8000/` (when accessed via a browser)
+- **Features**:
+  - Restaurant discovery with cuisine tags, hours, and average prep time.
+  - Interactive menu selection with real-time cart subtotal calculation.
+  - One-click order submission with delivery address validation.
+  - Live tracking view with visual 5-stage FSM progress stepper and live ETA display.
+  - Real-time reactive updates via Server-Sent Events (`EventSource`).
+  - Interactive simulation controls: advance stage, cancel order, and auto-simulate delivery.
 
 ---
 
